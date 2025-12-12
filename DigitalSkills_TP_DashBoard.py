@@ -4,7 +4,7 @@
 import requests
 import streamlit as st
 from bs4 import BeautifulSoup
-from datetime import date, time, datetime
+from datetime import datetime
 
 url = "https://store.steampowered.com/explore/new/"
 response = requests.get(url)

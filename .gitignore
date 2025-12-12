@@ -1,0 +1,39 @@
+# Byte-code files
+*.pyc
+__pycache__/
+
+
+# Distribution / packaging
+.Python
+build/
+dist/
+wheels/
+*.egg-info/
+
+# Environments
+.env
+.venv
+env/
+venv/
+VENV/
+venv.bak/
+
+
+# Editors and IDEs
+.idea/  # For PyCharm and other JetBrains IDEs
+.vscode/ # For Visual Studio Code
+*.swp
+*.sublime-project
+*.sublime-workspace
+
+# OS-specific files
+.DS_Store # macOS
+Thumbs.db # Windows
+
+# Miscellaneous
+# Logs and databases
+*.log
+*.sqlite
+*.sqlite3
+# Secrets/Credentials
+.abstra/ # Abstra framework credentials
