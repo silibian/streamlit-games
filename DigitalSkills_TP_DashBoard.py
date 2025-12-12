@@ -7,6 +7,7 @@
 import requests
 import streamlit as st
 from bs4 import BeautifulSoup
+from datetime import date, time, datetime
 
 
 # In[4]:
@@ -52,20 +53,22 @@ def scrape_game_info():
 		game_details = game_page_soup.find("div", class_="glance_ctn")
 
 		large_banner = game_details.find("img", class_="game_header_image_full")["src"]
-		#description = game_details.find("div", class_="game_description_snippet").text
-
+		description = game_details.find("div", class_="game_description_snippet").text
+		release_date = game_details.find("div", class_="date").text
+		release_date = datetime.strptime(release_date, "%D %b, %Y").strftime("%d/%m/%Y")
+		publisher = game_details.find("div", id="developers_list").text
 
 
 		popular_new_games.append(
 			{
 				"name": name,
-				"description": ...,
+				"description": description,
 				"url": url,
 				"small_banner": small_banner,
 				"large_banner": large_banner,
 				"price": price,
-				"release_date": ...,
-				"publisher": ...,
+				"release_date": release_date,
+				"publisher": publisher,
 				"discount": discount,
 				"tags": tags,
 			}
@@ -96,42 +99,31 @@ def load_more():
 
 st.title("Nouveaux Jeux Populaires Sur Steam")
 
-# Get the games to display based on the current count
 games_to_display = st.session_state.game_data[:st.session_state.display_count]
 remaining_games = len(st.session_state.game_data) - st.session_state.display_count
 
-# --- Display Games in Cards ---
-# Using 3 columns for a clean card layout
 cols = st.columns(3) 
 
 for i, game in enumerate(games_to_display):
-	with cols[i % 3]: # Cycle through the 3 columns
-		# Create a Streamlit container to act as a 'card'
+	with cols[i % 3]:
 		with st.container(border=True):
-			st.image(game["small_banner"], use_column_width="auto") # Replace with the actual image URL
+			st.image(game["small_banner"], width="content")
 			st.subheader(game["name"])
-			st.caption(f"**Tags:** {', '.join(game['tags'])}")
-			st.markdown(f"**Price:** **{game['price']}**")
-			# Button to open the dialog (pop-up)
-			if st.button("View Details", key=f"btn_{i}"):
+			st.caption(f"**Catégories:** {', '.join(game['tags'])}")
+			st.markdown(f"**Prix:** **{game['price']}**")
+			if st.button("Détails...", key=f"btn_{i}"):
 				st.session_state.selected_game_url = game["url"]
-			    # Rerun the app to trigger the dialog below
-# --- "Load More" Button ---
+
 if remaining_games > 0:
 	st.button(
-		f"Load More ({remaining_games} remaining)", 
+		f"Afficher plus ({remaining_games} jeu(x) restant(s))", 
 		on_click=load_more, 
 		use_container_width=True, 
 		type="primary"
 	)
 
-# --- 4. Dialog/Pop-up Logic ---
 if 'selected_game_url' in st.session_state and st.session_state.selected_game_url:
-	with st.dialog("Game Details"):
-		# Scrape and display the details for the selected game
-		#details = scrape_game_details(st.session_state.selected_game_url)
-
-		# Find the game's summary info again (for name, price, etc.)
+	with st.dialog("Détails du jeu"):
 		selected_game = next(
 			(g for g in st.session_state.game_data if g["url"] == st.session_state.selected_game_url), 
 			None
@@ -139,22 +131,20 @@ if 'selected_game_url' in st.session_state and st.session_state.selected_game_ur
 		details = selected_game
 		if selected_game:
 			st.title(selected_game["name"])
-			st.image(details["large_banner"], use_column_width="auto") # Replace with banner image
-			st.markdown(f"**Release Date:** {details['release_date']}")
-			st.markdown(f"**Publisher/Developer:** {details['publisher']}")
-			st.markdown(f"**Price:** **{selected_game['price']}**")
-			st.markdown(f"**Tags:** {', '.join(selected_game['tags'])}")
+			st.image(details["large_banner"], width="content")
+			st.markdown(f"**Date de sortie:** {details['release_date']}")
+			st.markdown(f"**Développeur:** {details['publisher']}")
+			st.markdown(f"**Prix:** **{selected_game['price']}**")
+			st.markdown(f"**Catégories:** {', '.join(selected_game['tags'])}")
 
 			st.divider()
 			st.markdown("### Description")
 			st.write(details["description"])
 
-			# Button that links to the original Steam page
-			st.link_button("View on Steam", selected_game["steam_url"], use_container_width=True, type="secondary")
-			# Clean up the session state when the user is done with the dialog
-			if st.button("Close"):
+			st.link_button("Voir sur Steam", selected_game["steam_url"], use_container_width=True, type="secondary")
+			if st.button("Fermer"):
 				st.session_state.selected_game_url = None
 				st.rerun() 
 		else:
-			st.error("Game details not found.")
+			st.error("Introuvable")
 
