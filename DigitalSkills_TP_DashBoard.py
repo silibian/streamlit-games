@@ -51,6 +51,7 @@ def scrape_game_details(url):
 	description = game_details.find("div", class_="game_description_snippet")
 	description = description.text if description is not None else ""
 	release_date = game_details.find("div", class_="date").text
+	release_date_parts = release_date.split()
 	release_date = datetime.strptime(release_date, "%d %b, %Y").strftime("%d/%m/%Y")
 	publisher = game_details.find("div", id="developers_list").text
 
@@ -71,7 +72,7 @@ def load_more():
 	st.session_state.display_count += 10
 
 
-@st.dialog("Détails du jeu")
+@st.dialog("Détails du jeu", on_dismiss="rerun")
 def show_details_dialog(game):
 	details = scrape_game_details(game["url"])
 	st.title(game["name"])
@@ -92,6 +93,7 @@ def show_details_dialog(game):
 
 st.title("Nouveaux Jeux Populaires Sur Steam")
 
+print(st.session_state.display_count)
 games_to_display = st.session_state.game_data[:st.session_state.display_count]
 remaining_games = len(st.session_state.game_data) - st.session_state.display_count
 
