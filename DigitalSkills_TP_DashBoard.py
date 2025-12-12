@@ -16,7 +16,7 @@ game_list = soup.find("div", class_="tab_content_items")
 
 @st.cache_data
 def scrape_game_info():
-	popular_new_games = []
+	popular_new_games: list[dict[str, str]] = []
 	for game_link in game_list.find_all("a", class_="tab_item"):
 		url = game_link["href"]
 		name = game_link.find("div", class_="tab_item_name").text
@@ -41,7 +41,7 @@ def scrape_game_info():
 
 
 @st.cache_data
-def scrape_game_details(url):
+def scrape_game_details(url: str) -> dict[str, str]:
 	game_page_response = requests.get(url)
 	game_page_response.encoding = "urf-8"
 	game_page_soup = BeautifulSoup(game_page_response.text, "html.parser")
@@ -51,8 +51,12 @@ def scrape_game_details(url):
 	description = game_details.find("div", class_="game_description_snippet")
 	description = description.text if description is not None else ""
 	release_date = game_details.find("div", class_="date").text
-	release_date_parts = release_date.split()
-	release_date = datetime.strptime(release_date, "%d %b, %Y").strftime("%d/%m/%Y")
+	try:
+		release_date = datetime.strptime(release_date, "%d %b, %Y").strftime("%d/%m/%Y")
+	except ValueError:
+		release_date = datetime.strptime(release_date, "%b %d, %Y").strftime("%d/%m/%Y")
+	else:
+		pass
 	publisher = game_details.find("div", id="developers_list").text
 
 	return {
@@ -64,12 +68,38 @@ def scrape_game_details(url):
 
 
 st.set_page_config(layout="wide", page_title="Nouveaux Jeux Populaires Sur Steam")
-st.session_state.game_data = scrape_game_info()
-st.session_state.display_count = 10
+
+if "game_data" not in st.session_state:
+	st.session_state.game_data = scrape_game_info()
+if "display_count" not in st.session_state:
+	st.session_state.display_count = 10
 
 
 def load_more():
 	st.session_state.display_count += 10
+
+
+def show_games_list():
+	for i, game in enumerate(games_to_display):
+		with cols[i % n_cols]:
+			with st.container(border=True):
+				st.image(game["small_banner"])
+				st.subheader(game["name"])
+				st.caption(f"**Catégories:** {game['tags']}")
+				st.markdown(
+					f"**Prix:** **{game['price']}{f" ({game['discount']})" if game['discount'] else ""}**"
+				)
+				if st.button("Détails...", key=f"btn_{i}"):
+					show_details_dialog(game)
+
+	if remaining_games > 0:
+		plural = remaining_games != 1
+		st.button(
+			f"Afficher plus ({remaining_games} jeu{"x" if plural else ""} restant{"s" if plural else ""})",
+			on_click=load_more, 
+			use_container_width=True, 
+			type="primary",
+		)
 
 
 @st.dialog("Détails du jeu", on_dismiss="rerun")
@@ -93,27 +123,10 @@ def show_details_dialog(game):
 
 st.title("Nouveaux Jeux Populaires Sur Steam")
 
-print(st.session_state.display_count)
 games_to_display = st.session_state.game_data[:st.session_state.display_count]
 remaining_games = len(st.session_state.game_data) - st.session_state.display_count
 
 n_cols = 5
-cols = st.columns(n_cols) 
+cols = st.columns(n_cols)
 
-for i, game in enumerate(games_to_display):
-	with cols[i % n_cols]:
-		with st.container(border=True):
-			st.image(game["small_banner"], width="content")
-			st.subheader(game["name"])
-			st.caption(f"**Catégories:** {game['tags']}")
-			st.markdown(f"**Prix:** **{game['price']}**")
-			if st.button("Détails...", key=f"btn_{i}"):
-				show_details_dialog(game)
-
-if remaining_games > 0:
-	st.button(
-		f"Afficher plus ({remaining_games} jeu(x) restant(s))", 
-		on_click=load_more, 
-		use_container_width=True, 
-		type="primary"
-	)
+show_games_list()
